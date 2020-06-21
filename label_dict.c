@@ -4,80 +4,87 @@
 #include "stdio.h"
 
 
-Label_list_item *label_lists_ptrs[NUMBER_LISTS];
+
+typedef struct List_item
+{
+
+    char name[NAME_LEN];
+    int offset;  
+
+    struct List_item *next_item_ptr;
+    struct List_item *previous_item_ptr;
+
+} List_item;
+
+
+
+
+List_item *first_lists_items_ptrs[NUMBER_LISTS];
+
+
 
 
 void initLabelDict() {
+
     for (int i = 0; i < NUMBER_LISTS; i++) 
-        label_lists_ptrs[i] = NULL;
+        first_lists_items_ptrs[i] = NULL;
+
 }
 
 
 
+static int hashFunc(char name[]) {
 
-// The hash function converts the first letter of the label name to a pointer number to the first element of the list.
-static int hashFunc(char ch) {
+    int sum = 0;
+    
+    for(int i = 0; name[i] != 0; i++)
+        sum += (int)name[i];
 
-    // If uppercase, then lowercase
-    if (ch >= 'A' && ch <= 'Z')         
-        ch = ch - 'A' + 'a';
+    return sum % 255;
 
-    // If this is not a letter, then exit the function, return an error code
-    else if (ch < 'a' || ch > 'z')      
-        return ERROR; 
-
-    return (int)(ch - 'a');
 }
 
 
 
+void addNewLabel(char name[], int offset){
 
-int addNewLabel(char name[], int offset){
 
-    char ch = name[0];
-
-    int num = hashFunc(ch);
-
-    if (num == ERROR)           
-        return ERROR;
+    int number = hashFunc(name);
     
     
-    // Copy of pointers to improve code readability
-    Label_list_item *current_item_ptr = label_lists_ptrs[num];     
-                                                                            
-    Label_list_item *previous_item_ptr = NULL;                           
+    List_item *current_item_ptr = first_lists_items_ptrs[number];                                                                         
+    List_item *previous_item_ptr = NULL;                           
 
 
     // Create a new item at the end of the list
-    
+
     if (current_item_ptr == NULL) 
     {
-        current_item_ptr = (Label_list_item*)malloc(sizeof(Label_list_item));
-        label_lists_ptrs[num] = current_item_ptr;
+        current_item_ptr = (List_item*)malloc(sizeof(List_item));
+        first_lists_items_ptrs[number] = current_item_ptr;
     }
 
     else 
     {
         do
         {
-            if (strcmp(current_item_ptr -> label_ptr -> name, name) == 0) 
+            if (strcmp(current_item_ptr -> name, name) == 0) 
             {  
-                current_item_ptr -> label_ptr -> offset = offset;
-                return CORRECTLY;
+                current_item_ptr -> offset = offset;
+                return;
             }
 
             previous_item_ptr = current_item_ptr;                               
-            current_item_ptr = current_item_ptr -> next_item_ptr;                   
+            current_item_ptr = current_item_ptr -> next_item_ptr;   
+
         } while (current_item_ptr != NULL);
 
-        current_item_ptr = (Label_list_item*)malloc(sizeof(Label_list_item));
+        current_item_ptr = (List_item*)malloc(sizeof(List_item));
     }
 
-    
-    current_item_ptr -> label_ptr = (Label*)malloc(sizeof(Label));     
 
-    strcpy(current_item_ptr -> label_ptr -> name, name);                   
-    current_item_ptr -> label_ptr -> offset = offset;
+    strcpy(current_item_ptr -> name, name);                   
+    current_item_ptr -> offset = offset;
 
     current_item_ptr -> next_item_ptr = NULL;                                               
 
@@ -86,27 +93,26 @@ int addNewLabel(char name[], int offset){
     if (previous_item_ptr != NULL)
         previous_item_ptr -> next_item_ptr = current_item_ptr;                                  
 
-    return CORRECTLY;
 }
 
 
 
 
 int getLabelOffset(char name[]) {
-    char ch = name[0];
 
-    int num = hashFunc(ch);
 
-    if (num == ERROR)                       
-        return ERROR;
+    int number = hashFunc(name);
 
-    Label_list_item *current_item_ptr = label_lists_ptrs[num];  
 
-    // Check the name of each list item
+    List_item *current_item_ptr = first_lists_items_ptrs[number];  
+
+
+    // Check the name of each element and if it converges, then return the offset 
+
     while(current_item_ptr != NULL)                                        
     {
-        if (!strcmp(current_item_ptr -> label_ptr -> name, name))   
-            return current_item_ptr -> label_ptr -> offset;         
+        if (!strcmp(current_item_ptr -> name, name))   
+            return current_item_ptr -> offset;         
 
         current_item_ptr = current_item_ptr -> next_item_ptr;                 
     }
@@ -123,8 +129,8 @@ void clearLabelDict() {
 
     for (int i = 0; i < NUMBER_LISTS; i++)                                      
     {
-        Label_list_item *current_item_ptr = label_lists_ptrs[i];      
-        Label_list_item *previous_item_ptr = NULL; 
+        List_item *current_item_ptr = first_lists_items_ptrs[i];      
+        List_item *previous_item_ptr = NULL; 
 
         
         if (current_item_ptr != NULL)                                                                                          
@@ -136,8 +142,7 @@ void clearLabelDict() {
             }
 
             while (current_item_ptr != NULL)                                       
-            {
-                free(current_item_ptr -> label_ptr);                  
+            {                 
                 free(current_item_ptr);                        
 
                 current_item_ptr = previous_item_ptr;
@@ -146,7 +151,7 @@ void clearLabelDict() {
                     previous_item_ptr = previous_item_ptr -> previous_item_ptr;
             }
 
-            label_lists_ptrs[i] = NULL;
+            first_lists_items_ptrs[i] = NULL;
         }
     }
 }
